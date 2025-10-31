@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlotSwapper</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
+    h2 { color: #333; }
+    .container { max-width: 400px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; }
+    button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #45a049; }
+    hr { margin: 20px 0; }
+    #events { margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>SlotSwapper</h2>
+
+    <!-- Signup Section -->
+    <h3>Signup</h3>
+    <input id="signupName" placeholder="Name" />
+    <input id="signupEmail" placeholder="Email" />
+    <input id="signupPassword" type="password" placeholder="Password" />
+    <button onclick="signup()">Signup</button>
+
+    <hr />
+
+    <!-- Login Section -->
+    <h3>Login</h3>
+    <input id="loginEmail" placeholder="Email" />
+    <input id="loginPassword" type="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+
+    <hr />
+
+    <!-- Event Section -->
+    <h3>Create Event</h3>
+    <input id="eventTitle" placeholder="Event Title" />
+    <input id="eventStart" placeholder="Start Time (YYYY-MM-DD HH:MM)" />
+    <input id="eventEnd" placeholder="End Time (YYYY-MM-DD HH:MM)" />
+    <button onclick="createEvent()">Create Event</button>
+
+    <div id="events"></div>
+  </div>
+
+  <script>
+    const BASE_URL = "http://127.0.0.1:8000";
+    let token = localStorage.getItem("token");
+
+    async function signup() {
+      const name = document.getElementById("signupName").value;
+      const email = document.getElementById("signupEmail").value;
+      const password = document.getElementById("signupPassword").value;
+
+      const res = await fetch(`${BASE_URL}/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+      alert(data.message || JSON.stringify(data));
+    }
+
+    async function login() {
+      const email = document.getElementById("loginEmail").value;
+      const password = document.getElementById("loginPassword").value;
+
+      const formData = new URLSearchParams();
+      formData.append("username", email);
+      formData.append("password", password);
+
+      const res = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (data.access_token) {
+        token = data.access_token;
+        localStorage.setItem("token", token);
+        alert("✅ Logged in successfully!");
+        fetchEvents();
+      } else {
+        alert("❌ Login failed: " + JSON.stringify(data));
+      }
+    }
+
+    async function createEvent() {
+      const title = document.getElementById("eventTitle").value;
+      const start_time = document.getElementById("eventStart").value;
+      const end_time = document.getElementById("eventEnd").value;
+
+      const res = await fetch(`${BASE_URL}/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title, start_time, end_time }),
+      });
+
+      const data = await res.json();
+      alert(data.message || JSON.stringify(data));
+      fetchEvents();
+    }
+
+    async function fetchEvents() {
+      if (!token) return;
+      const res = await fetch(`${BASE_URL}/events`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      const eventsDiv = document.getElementById("events");
+      eventsDiv.innerHTML = "<h3>Your Events:</h3>" + data.events.map(e =>
+        `<div><strong>${e.title}</strong> (${e.start_time} → ${e.end_time}) [${e.status}]</div>`
+      ).join("");
+    }
+
+    if (token) fetchEvents();
+  </script>
+</body>
+</html>
