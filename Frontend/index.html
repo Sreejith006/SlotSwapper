@@ -1,206 +1,644 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SlotSwapper</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f6f8fa;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 30px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slot Swapper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better UI/UX */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937; /* Dark background */
+            color: #f3f4f6;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .card {
+            background-color: #374151; /* Slightly lighter card background */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], input[type="email"], input[type="password"], input[type="datetime-local"] {
+            background-color: #4b5563;
+            border: 1px solid #6b7280;
+            color: #f3f4f6;
+        }
+        button {
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            transform: translateY(-1px);
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        .event-card {
+            border-left-width: 4px;
+        }
+        .status-busy { border-left-color: #ef4444; }
+        .status-swappable { border-left-color: #22c55e; }
+        .status-pending { border-left-color: #f59e0b; }
 
-    h1 {
-      color: #333;
-    }
+        /* Toast Notification Styling */
+        #toastContainer {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(20px);
+            min-width: 250px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast.success { background-color: #10b981; color: white; }
+        .toast.error { background-color: #ef4444; color: white; }
+        .toast.info { background-color: #3b82f6; color: white; }
 
-    .container {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      width: 350px;
-      margin-bottom: 20px;
-    }
-
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      background-color: #007bff;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    #events {
-      width: 400px;
-      margin-top: 20px;
-    }
-
-    .event {
-      background-color: #fff;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      margin-bottom: 10px;
-    }
-  </style>
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+        }
+        .modal-content {
+            background-color: #374151;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+    </style>
 </head>
-<body>
+<body class="p-4 md:p-8">
 
-  <h1>SlotSwapper</h1>
+    <div id="toastContainer"></div>
 
-  <!-- Signup Section -->
-  <div class="container" id="signupSection">
-    <h3>Signup</h3>
-    <input id="signupName" placeholder="Name" />
-    <input id="signupEmail" placeholder="Email" />
-    <input id="signupPassword" type="password" placeholder="Password" />
-    <button onclick="signup()">Sign Up</button>
-  </div>
+    <div class="container mx-auto">
+        <h1 class="text-4xl font-bold text-center mb-10 text-white">SlotSwapper</h1>
 
-  <!-- Login Section -->
-  <div class="container" id="loginSection">
-    <h3>Login</h3>
-    <input id="loginEmail" placeholder="Email" />
-    <input id="loginPassword" type="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
-  </div>
+        <!-- Auth Section -->
+        <div id="authSection" class="space-y-8">
+            
+            <!-- Signup Card -->
+            <div class="card p-6 rounded-lg">
+                <h2 class="text-2xl font-semibold mb-4">Signup</h2>
+                <form id="signupForm" class="space-y-4">
+                    <input type="text" id="signupName" placeholder="Name" required 
+                           class="w-full p-3 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <input type="email" id="signupEmail" placeholder="Email" required 
+                           class="w-full p-3 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <input type="password" id="signupPassword" placeholder="Password" required 
+                           class="w-full p-3 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="w-full btn-primary p-3 rounded-lg font-medium">Signup</button>
+                </form>
+            </div>
 
-  <!-- Event Management -->
-  <div class="container" id="eventSection" style="display: none;">
-    <h3>Create Event</h3>
-    <input id="eventTitle" placeholder="Event Title" />
-    <input id="eventStart" type="datetime-local" />
-    <input id="eventEnd" type="datetime-local" />
-    <button onclick="addEvent()">Create Event</button>
+            <hr class="border-gray-600">
+            
+            <!-- Login Card -->
+            <div class="card p-6 rounded-lg">
+                <h2 class="text-2xl font-semibold mb-4">Login</h2>
+                <form id="loginForm" class="space-y-4">
+                    <input type="email" id="loginEmail" placeholder="Email" required 
+                           class="w-full p-3 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <input type="password" id="loginPassword" placeholder="Password" required 
+                           class="w-full p-3 rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" class="w-full btn-primary p-3 rounded-lg font-medium">Login</button>
+                </form>
+            </div>
+        </div>
 
-    <h3>Your Events</h3>
-    <div id="events"></div>
-  </div>
+        <!-- Dashboard Section -->
+        <div id="dashboardSection" class="hidden space-y-10">
+            <h2 class="text-3xl font-bold text-center">Dashboard</h2>
+            
+            <div class="flex justify-end">
+                <button id="logoutButton" class="btn-danger p-2 px-4 rounded-lg font-medium">Logout</button>
+            </div>
 
-  <script>
-    const backendUrl = "http://127.0.0.1:8000";
-    let token = "";
+            <!-- Create Event Card -->
+            <div class="card p-6 rounded-lg">
+                <h3 class="text-2xl font-semibold mb-4">Create Event</h3>
+                <form id="createEventForm" class="flex flex-col md:flex-row gap-4">
+                    <input type="text" id="eventTitle" placeholder="Event Title" required 
+                           class="p-3 rounded-lg flex-grow">
+                    <input type="datetime-local" id="eventStartTime" required 
+                           class="p-3 rounded-lg">
+                    <input type="datetime-local" id="eventEndTime" required 
+                           class="p-3 rounded-lg">
+                    <button type="submit" class="btn-primary p-3 rounded-lg font-medium whitespace-nowrap">Create Event</button>
+                </form>
+            </div>
 
-    // Signup Function
-    async function signup() {
-      const name = document.getElementById("signupName").value;
-      const email = document.getElementById("signupEmail").value;
-      const password = document.getElementById("signupPassword").value;
+            <!-- My Events -->
+            <div class="card p-6 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-semibold">My Events</h3>
+                    <button id="refreshMyEvents" class="btn-secondary p-2 px-4 rounded-lg font-medium">Refresh</button>
+                </div>
+                <div id="myEventsList" class="space-y-4">
+                    <!-- My events will be rendered here -->
+                </div>
+            </div>
 
-      const response = await fetch(`${backendUrl}/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password })
-      });
+            <!-- Available Slots for Swapping -->
+            <div class="card p-6 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-semibold">Available Slots to Swap Into</h3>
+                    <button id="refreshSwappableSlots" class="btn-secondary p-2 px-4 rounded-lg font-medium">Refresh</button>
+                </div>
+                <div id="swappableSlotsList" class="space-y-4">
+                    <p class="text-gray-400" id="noSwappableSlots">No swappable slots available from other users.</p>
+                    <!-- Swappable slots will be rendered here -->
+                </div>
+            </div>
+            
+            <!-- Incoming Swap Requests -->
+            <div class="card p-6 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-semibold">Incoming Swap Requests</h3>
+                    <button id="refreshIncomingRequests" class="btn-secondary p-2 px-4 rounded-lg font-medium">Refresh</button>
+                </div>
+                <div id="incomingRequestsList" class="space-y-4">
+                    <p class="text-gray-400" id="noIncomingRequests">No incoming swap requests.</p>
+                    <!-- Incoming swap requests will be rendered here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL for making a Swap Request -->
+    <div id="swapRequestModal" class="modal">
+        <div class="modal-content absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <h3 class="text-xl font-semibold mb-4 text-white">Initiate Swap Request</h3>
+            <div class="text-sm space-y-2 mb-4">
+                <p><strong>Desired Slot (The one you want):</strong> <span id="modalDesiredSlotInfo" class="font-medium text-blue-300"></span></p>
+                <p><strong>Offer Your Slot:</strong></p>
+            </div>
 
-      const data = await response.json();
-      alert(data.message || "Signup completed!");
-    }
+            <form id="initiateSwapForm" class="space-y-4">
+                <select id="offeredSlotSelect" required class="w-full p-3 rounded-lg bg-gray-600 border border-gray-500 text-white focus:ring-2 focus:ring-blue-500">
+                    <option value="" disabled selected>Select YOUR SWAPPABLE slot to offer</option>
+                    <!-- User's swappable slots will be dynamically added here -->
+                </select>
+                
+                <div class="flex gap-4">
+                    <button type="submit" class="w-1/2 btn-primary p-3 rounded-lg font-medium">Send Swap Request</button>
+                    <button type="button" id="closeSwapRequestModal" class="w-1/2 btn-secondary p-3 rounded-lg font-medium">Cancel</button>
+                </div>
+            </form>
+            <input type="hidden" id="modalDesiredSlotId">
+        </div>
+    </div>
 
-    // Login Function
-    async function login() {
-      const email = document.getElementById("loginEmail").value;
-      const password = document.getElementById("loginPassword").value;
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
 
-      const formData = new URLSearchParams();
-      formData.append("username", email);
-      formData.append("password", password);
+        // --- Utility Functions ---
 
-      const response = await fetch(`${backendUrl}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData
-      });
+        /**
+         * Converts ISO 8601 string to a readable format.
+         * @param {string} isoString 
+         */
+        function formatDateTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString('en-US', {
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+        }
+        
+        /**
+         * Custom Toast Notification
+         * @param {string} message The message to display.
+         * @param {string} type 'success', 'error', or 'info'.
+         */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            container.appendChild(toast);
+            
+            // Force reflow to enable transition
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                // Remove from DOM after transition
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 5000);
+        }
 
-      const data = await response.json();
-      if (data.access_token) {
-        token = data.access_token;
-        alert("Login successful!");
-        document.getElementById("eventSection").style.display = "block";
-        document.getElementById("signupSection").style.display = "none";
-        document.getElementById("loginSection").style.display = "none";
-        getEvents();
-      } else {
-        alert(data.detail || "Login failed");
-      }
-    }
+        // --- Authentication & UI State ---
+        
+        /**
+         * Updates UI based on login status.
+         */
+        function updateUI() {
+            const token = localStorage.getItem('accessToken');
+            const authSection = document.getElementById('authSection');
+            const dashboardSection = document.getElementById('dashboardSection');
 
-    // Create Event
-    async function createEvent() {
-      const title = document.getElementById("eventTitle").value;
-      const start_time = document.getElementById("eventStart").value;
-      const end_time = document.getElementById("eventEnd").value;
+            if (token) {
+                authSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+                // If logged in, automatically load events
+                loadMyEvents();
+                loadSwappableSlots();
+                loadIncomingRequests();
+            } else {
+                authSection.classList.remove('hidden');
+                dashboardSection.classList.add('hidden');
+            }
+        }
 
-      const response = await fetch(`${backendUrl}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ title, start_time, end_time })
-      });
+        // --- API Helpers ---
 
-      const data = await response.json();
-      alert(data.message || "Event created!");
-      getEvents();
-    }
+        /**
+         * Generic API fetch function with token handling.
+         */
+        async function fetchAPI(endpoint, options = {}) {
+            const token = localStorage.getItem('accessToken');
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            
+            if (token && !endpoint.includes('signup') && !endpoint.includes('login')) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
 
-    // Get Events
-    async function getEvents() {
-      const response = await fetch(`${backendUrl}/events`, {
-        method: "GET",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...options,
+                    headers
+                });
+                
+                const data = await response.json();
 
-      const data = await response.json();
-      const container = document.getElementById("events");
-      container.innerHTML = "";
-      data.events.forEach(e => {
-        const div = document.createElement("div");
-        div.classList.add("event");
-        div.innerHTML = `
-          <strong>${e.title}</strong><br>
-          ${e.start_time} - ${e.end_time}<br>
-          <em>Status:</em> ${e.status}
-        `;
-        container.appendChild(div);
-      });
-    }
-    // Create Event
-async function addEvent() {
-  const title = document.getElementById("eventTitle").value;
-  const start_time = document.getElementById("eventStart").value;
-  const end_time = document.getElementById("eventEnd").value;
+                if (!response.ok) {
+                    const detail = data.detail || "An unexpected error occurred.";
+                    showToast(`Error: ${detail}`, 'error');
+                    // If 401, force logout
+                    if (response.status === 401) {
+                        localStorage.removeItem('accessToken');
+                        updateUI();
+                    }
+                    return null; // Indicate failure
+                }
 
-  const response = await fetch(`${backendUrl}/events`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify({ title, start_time, end_time })
-  });
+                return data; // Indicate success
+            } catch (error) {
+                showToast(`Network error: ${error.message}`, 'error');
+                return null; // Indicate failure
+            }
+        }
 
-  const data = await response.json();
-  alert(data.message || "Event created!");
-  getEvents();
-}
+        // --- Event Listeners & Handlers ---
 
-  </script>
+        document.getElementById('signupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
 
+            const result = await fetchAPI('/signup', {
+                method: 'POST',
+                body: JSON.stringify({ name, email, password })
+            });
+
+            if (result) {
+                showToast(result.message, 'success');
+                e.target.reset();
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const result = await fetchAPI('/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+
+            if (result && result.access_token) {
+                localStorage.setItem('accessToken', result.access_token);
+                showToast("Login successful!", 'success');
+                updateUI();
+            }
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            localStorage.removeItem('accessToken');
+            showToast("Logged out successfully.", 'info');
+            updateUI();
+        });
+
+        document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('eventTitle').value;
+            const startTime = document.getElementById('eventStartTime').value + ':00'; // FastAPI expects seconds
+            const endTime = document.getElementById('eventEndTime').value + ':00';
+
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI('/api/events', { 
+                method: 'POST',
+                body: JSON.stringify({ title, start_time: startTime, end_time: endTime })
+            });
+
+            if (result) {
+                showToast(result.message, 'success');
+                e.target.reset();
+                loadMyEvents();
+            }
+        });
+        
+        document.getElementById('refreshMyEvents').addEventListener('click', loadMyEvents);
+        document.getElementById('refreshSwappableSlots').addEventListener('click', loadSwappableSlots);
+        document.getElementById('refreshIncomingRequests').addEventListener('click', loadIncomingRequests);
+
+        // --- Core Functions ---
+
+        async function loadMyEvents() {
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI('/api/events', { method: 'GET' });
+            const listElement = document.getElementById('myEventsList');
+            listElement.innerHTML = '';
+            
+            if (result && result.events.length > 0) {
+                result.events.forEach(event => {
+                    listElement.appendChild(createEventCard(event));
+                });
+            } else {
+                listElement.innerHTML = '<p class="text-gray-400">You have no events.</p>';
+            }
+        }
+        
+        async function loadSwappableSlots() {
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI('/api/swappable-slots', { method: 'GET' });
+            const listElement = document.getElementById('swappableSlotsList');
+            const noSlots = document.getElementById('noSwappableSlots');
+            listElement.innerHTML = '';
+            
+            if (result && result.swappable_slots.length > 0) {
+                noSlots.classList.add('hidden');
+                result.swappable_slots.forEach(slot => {
+                    listElement.appendChild(createSwappableSlotCard(slot));
+                });
+            } else {
+                noSlots.classList.remove('hidden');
+            }
+        }
+        
+        async function loadIncomingRequests() {
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI('/api/swap-requests/incoming', { method: 'GET' });
+            const listElement = document.getElementById('incomingRequestsList');
+            const noRequests = document.getElementById('noIncomingRequests');
+            listElement.innerHTML = '';
+            
+            if (result && result.incoming_requests.length > 0) {
+                noRequests.classList.add('hidden');
+                result.incoming_requests.forEach(request => {
+                    listElement.appendChild(createIncomingRequestCard(request));
+                });
+            } else {
+                noRequests.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Renders an event card for the authenticated user's events.
+         */
+        function createEventCard(event) {
+            const card = document.createElement('div');
+            card.className = `event-card p-3 rounded-lg flex justify-between items-center shadow-md ${event.status ? 'status-' + event.status.toLowerCase().replace('_', '-') : 'status-busy'}`;
+            card.dataset.eventId = event.id;
+            
+            const statusColor = {
+                'BUSY': 'text-red-400', 
+                'SWAPPABLE': 'text-green-400', 
+                'SWAP_PENDING': 'text-yellow-400'
+            };
+
+            card.innerHTML = `
+                <div class="flex flex-col flex-grow">
+                    <span class="font-bold text-lg">${event.title}</span>
+                    <span class="text-sm text-gray-400">${formatDateTime(event.start_time)} - ${formatDateTime(event.end_time)}</span>
+                    <span class="text-xs font-medium ${statusColor[event.status] || 'text-gray-400'}">Status: ${event.status}</span>
+                </div>
+                <div class="flex gap-2 ml-4">
+                    ${event.status === 'BUSY' ? `<button class="btn-primary p-2 rounded-lg text-xs font-medium toggle-status" data-status="SWAPPABLE">Make Swappable</button>` : ''}
+                    ${event.status === 'SWAPPABLE' ? `<button class="btn-secondary p-2 rounded-lg text-xs font-medium toggle-status" data-status="BUSY">Make Busy</button>` : ''}
+                </div>
+            `;
+            
+            card.querySelector('.toggle-status')?.addEventListener('click', (e) => {
+                const newStatus = e.target.dataset.status;
+                updateEventStatus(event.id, newStatus);
+            });
+            
+            return card;
+        }
+        
+        /**
+         * Renders a card for a swappable slot from another user.
+         */
+        function createSwappableSlotCard(slot) {
+            const card = document.createElement('div');
+            card.className = `event-card status-swappable p-3 rounded-lg flex justify-between items-center shadow-md`;
+            
+            card.innerHTML = `
+                <div class="flex flex-col flex-grow">
+                    <span class="font-bold text-lg">${slot.title}</span>
+                    <span class="text-sm text-gray-400">${formatDateTime(slot.start_time)} - ${formatDateTime(slot.end_time)}</span>
+                    <span class="text-xs font-medium text-green-400">Owner: User ${slot.user_id}</span>
+                </div>
+                <button class="btn-primary p-2 rounded-lg text-xs font-medium init-swap-btn" 
+                        data-desired-id="${slot.id}" 
+                        data-slot-info="${slot.title}, ${formatDateTime(slot.start_time)}">Request Swap</button>
+            `;
+            
+            card.querySelector('.init-swap-btn').addEventListener('click', (e) => {
+                const desiredId = e.target.dataset.desiredId;
+                const slotInfo = e.target.dataset.slotInfo;
+                openSwapRequestModal(desiredId, slotInfo);
+            });
+            
+            return card;
+        }
+        
+        /**
+         * Renders a card for an incoming swap request.
+         */
+        function createIncomingRequestCard(request) {
+            const card = document.createElement('div');
+            card.className = `event-card status-pending p-3 rounded-lg flex flex-col md:flex-row justify-between items-center shadow-md`;
+            
+            card.innerHTML = `
+                <div class="flex flex-col flex-grow mb-2 md:mb-0">
+                    <span class="font-bold text-lg">Swap Offer from ${request.requester_name}</span>
+                    <span class="text-sm text-gray-400">Offering: ${request.offering_slot_title} (${request.offering_slot_time})</span>
+                    <span class="text-xs font-medium text-yellow-400">Request ID: ${request.request_id}</span>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn-primary p-2 rounded-lg text-xs font-medium respond-swap-btn" data-request-id="${request.request_id}" data-action="accept">Accept</button>
+                    <button class="btn-danger p-2 rounded-lg text-xs font-medium respond-swap-btn" data-request-id="${request.request_id}" data-action="reject">Reject</button>
+                </div>
+            `;
+            
+            card.querySelectorAll('.respond-swap-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const requestId = e.target.dataset.requestId;
+                    const action = e.target.dataset.action === 'accept';
+                    respondToSwapRequest(requestId, action);
+                });
+            });
+            
+            return card;
+        }
+
+        async function updateEventStatus(eventId, newStatus) {
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI(`/api/events/${eventId}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (result) {
+                showToast(result.message, 'success');
+                loadMyEvents();
+                // Status change might affect swappable list, so refresh it
+                loadSwappableSlots();
+            }
+        }
+        
+        // --- Swap Request Modal Logic ---
+        
+        async function openSwapRequestModal(desiredSlotId, slotInfo) {
+            // 1. Get user's swappable slots to populate the <select>
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI('/api/events', { method: 'GET' });
+            const mySwappableSlots = result.events.filter(e => e.status === 'SWAPPABLE');
+            
+            const select = document.getElementById('offeredSlotSelect');
+            select.innerHTML = '<option value="" disabled selected>Select YOUR SWAPPABLE slot to offer</option>';
+            
+            mySwappableSlots.forEach(event => {
+                const option = document.createElement('option');
+                option.value = event.id;
+                option.textContent = `${event.title} (${formatDateTime(event.start_time)} - ${formatDateTime(event.end_time)})`;
+                select.appendChild(option);
+            });
+
+            if (mySwappableSlots.length === 0) {
+                select.innerHTML = '<option value="" disabled selected>No slots available to offer. Make an event SWAPPABLE first.</option>';
+            }
+
+            // 2. Populate modal info
+            document.getElementById('modalDesiredSlotInfo').textContent = slotInfo;
+            document.getElementById('modalDesiredSlotId').value = desiredSlotId;
+            
+            // 3. Show the modal
+            document.getElementById('swapRequestModal').style.display = 'block';
+        }
+        
+        document.getElementById('closeSwapRequestModal').addEventListener('click', () => {
+            document.getElementById('swapRequestModal').style.display = 'none';
+        });
+
+        document.getElementById('initiateSwapForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const offeredSlotId = parseInt(document.getElementById('offeredSlotSelect').value);
+            const desiredSlotId = parseInt(document.getElementById('modalDesiredSlotId').value);
+            
+            if (!offeredSlotId) {
+                showToast("Please select a valid slot to offer.", 'error');
+                return;
+            }
+
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI('/api/swap-request', {
+                method: 'POST',
+                body: JSON.stringify({
+                    offered_slot_id: offeredSlotId,
+                    desired_slot_id: desiredSlotId
+                })
+            });
+
+            if (result) {
+                showToast(result.message, 'success');
+                document.getElementById('swapRequestModal').style.display = 'none';
+                loadMyEvents(); // Refresh user's events (should now show SWAP_PENDING)
+                loadSwappableSlots(); // The desired slot will no longer be listed
+            }
+        });
+        
+        async function respondToSwapRequest(requestId, accept) {
+            // NOTE: ADDED /API/ PREFIX HERE
+            const result = await fetchAPI(`/api/swap-response/${requestId}`, {
+                method: 'POST',
+                body: JSON.stringify({ accept: accept })
+            });
+
+            if (result) {
+                showToast(result.message, 'success');
+                loadIncomingRequests(); // Update incoming requests
+                loadMyEvents(); // Update my events (the slots should now be swapped/returned)
+                loadSwappableSlots(); // Swappable list might be affected
+            }
+        }
+
+
+        // --- Initialization ---
+        window.onload = updateUI;
+    </script>
 </body>
 </html>
