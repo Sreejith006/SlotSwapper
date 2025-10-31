@@ -1,70 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>SlotSwapper</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 20px; }
-    h2 { color: #333; }
-    .container { max-width: 400px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    input, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; }
-    button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-    button:hover { background-color: #45a049; }
-    hr { margin: 20px 0; }
-    #events { margin-top: 15px; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f6f8fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 350px;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #events {
+      width: 400px;
+      margin-top: 20px;
+    }
+
+    .event {
+      background-color: #fff;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>SlotSwapper</h2>
 
-    <!-- Signup Section -->
+  <h1>SlotSwapper</h1>
+
+  <!-- Signup Section -->
+  <div class="container" id="signupSection">
     <h3>Signup</h3>
     <input id="signupName" placeholder="Name" />
     <input id="signupEmail" placeholder="Email" />
     <input id="signupPassword" type="password" placeholder="Password" />
-    <button onclick="signup()">Signup</button>
+    <button onclick="signup()">Sign Up</button>
+  </div>
 
-    <hr />
-
-    <!-- Login Section -->
+  <!-- Login Section -->
+  <div class="container" id="loginSection">
     <h3>Login</h3>
     <input id="loginEmail" placeholder="Email" />
     <input id="loginPassword" type="password" placeholder="Password" />
     <button onclick="login()">Login</button>
+  </div>
 
-    <hr />
-
-    <!-- Event Section -->
+  <!-- Event Management -->
+  <div class="container" id="eventSection" style="display: none;">
     <h3>Create Event</h3>
     <input id="eventTitle" placeholder="Event Title" />
-    <input id="eventStart" placeholder="Start Time (YYYY-MM-DD HH:MM)" />
-    <input id="eventEnd" placeholder="End Time (YYYY-MM-DD HH:MM)" />
-    <button onclick="createEvent()">Create Event</button>
+    <input id="eventStart" type="datetime-local" />
+    <input id="eventEnd" type="datetime-local" />
+    <button onclick="addEvent()">Create Event</button>
 
+    <h3>Your Events</h3>
     <div id="events"></div>
   </div>
 
   <script>
-    const BASE_URL = "http://127.0.0.1:8000";
-    let token = localStorage.getItem("token");
+    const backendUrl = "http://127.0.0.1:8000";
+    let token = "";
 
+    // Signup Function
     async function signup() {
       const name = document.getElementById("signupName").value;
       const email = document.getElementById("signupEmail").value;
       const password = document.getElementById("signupPassword").value;
 
-      const res = await fetch(`${BASE_URL}/signup`, {
+      const response = await fetch(`${backendUrl}/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password })
       });
 
-      const data = await res.json();
-      alert(data.message || JSON.stringify(data));
+      const data = await response.json();
+      alert(data.message || "Signup completed!");
     }
 
+    // Login Function
     async function login() {
       const email = document.getElementById("loginEmail").value;
       const password = document.getElementById("loginPassword").value;
@@ -73,56 +120,87 @@
       formData.append("username", email);
       formData.append("password", password);
 
-      const res = await fetch(`${BASE_URL}/login`, {
+      const response = await fetch(`${backendUrl}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
+        body: formData
       });
 
-      const data = await res.json();
+      const data = await response.json();
       if (data.access_token) {
         token = data.access_token;
-        localStorage.setItem("token", token);
-        alert("✅ Logged in successfully!");
-        fetchEvents();
+        alert("Login successful!");
+        document.getElementById("eventSection").style.display = "block";
+        document.getElementById("signupSection").style.display = "none";
+        document.getElementById("loginSection").style.display = "none";
+        getEvents();
       } else {
-        alert("❌ Login failed: " + JSON.stringify(data));
+        alert(data.detail || "Login failed");
       }
     }
 
+    // Create Event
     async function createEvent() {
       const title = document.getElementById("eventTitle").value;
       const start_time = document.getElementById("eventStart").value;
       const end_time = document.getElementById("eventEnd").value;
 
-      const res = await fetch(`${BASE_URL}/events`, {
+      const response = await fetch(`${backendUrl}/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ title, start_time, end_time }),
+        body: JSON.stringify({ title, start_time, end_time })
       });
 
-      const data = await res.json();
-      alert(data.message || JSON.stringify(data));
-      fetchEvents();
+      const data = await response.json();
+      alert(data.message || "Event created!");
+      getEvents();
     }
 
-    async function fetchEvents() {
-      if (!token) return;
-      const res = await fetch(`${BASE_URL}/events`, {
-        headers: { Authorization: `Bearer ${token}` },
+    // Get Events
+    async function getEvents() {
+      const response = await fetch(`${backendUrl}/events`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
       });
-      const data = await res.json();
 
-      const eventsDiv = document.getElementById("events");
-      eventsDiv.innerHTML = "<h3>Your Events:</h3>" + data.events.map(e =>
-        `<div><strong>${e.title}</strong> (${e.start_time} → ${e.end_time}) [${e.status}]</div>`
-      ).join("");
+      const data = await response.json();
+      const container = document.getElementById("events");
+      container.innerHTML = "";
+      data.events.forEach(e => {
+        const div = document.createElement("div");
+        div.classList.add("event");
+        div.innerHTML = `
+          <strong>${e.title}</strong><br>
+          ${e.start_time} - ${e.end_time}<br>
+          <em>Status:</em> ${e.status}
+        `;
+        container.appendChild(div);
+      });
     }
+    // Create Event
+async function addEvent() {
+  const title = document.getElementById("eventTitle").value;
+  const start_time = document.getElementById("eventStart").value;
+  const end_time = document.getElementById("eventEnd").value;
 
-    if (token) fetchEvents();
+  const response = await fetch(`${backendUrl}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ title, start_time, end_time })
+  });
+
+  const data = await response.json();
+  alert(data.message || "Event created!");
+  getEvents();
+}
+
   </script>
+
 </body>
 </html>

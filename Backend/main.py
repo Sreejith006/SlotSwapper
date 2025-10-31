@@ -46,7 +46,7 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS events (
 conn.commit()
 
 # ----------------------#
-# MODELS (Pydantic)
+# MODELS
 # ----------------------#
 class UserCreate(BaseModel):
     name: str
@@ -84,7 +84,8 @@ def verify_token(token: str = Depends(oauth2_scheme)):
 # ----------------------#
 @app.post("/signup")
 def signup(user: UserCreate):
-    hashed_pw = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
+    # Hash password and convert to string
+    hashed_pw = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     try:
         cursor.execute("INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
                        (user.name, user.email, hashed_pw))
@@ -100,7 +101,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    stored_hash = user[3]
+    stored_hash = user[3].encode('utf-8')  # convert back to bytes
     if not bcrypt.checkpw(form_data.password.encode('utf-8'), stored_hash):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
